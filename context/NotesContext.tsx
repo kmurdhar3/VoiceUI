@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useAuth } from "./AuthContext";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
+const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 interface NoteItem {
   id: string;

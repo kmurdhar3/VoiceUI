@@ -14,7 +14,7 @@ import { useHistory } from "@/context/HistoryContext";
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/context/AuthContext";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
+const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);

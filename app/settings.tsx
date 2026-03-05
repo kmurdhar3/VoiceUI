@@ -16,7 +16,7 @@ import { ArrowLeft, ChevronDown, Check } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ToastProvider";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
+const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 const LANGUAGES = [
   { code: "en", label: "English" },

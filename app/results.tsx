@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ToastProvider";
 import { useNotes } from "@/context/NotesContext";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
+const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 interface ResultsData {
   original?: string;

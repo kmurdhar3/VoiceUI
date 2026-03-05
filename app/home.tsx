@@ -18,7 +18,7 @@ import { useHistory } from "@/context/HistoryContext";
 import { useNotes } from "@/context/NotesContext";
 import { Audio } from "expo-av";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
+const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 type RecordingState = "idle" | "recording" | "processing";
 
