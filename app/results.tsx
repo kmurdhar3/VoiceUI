@@ -116,27 +116,42 @@ export default function ResultsScreen() {
         rawData = JSON.parse(dataParam);
         console.log("Results raw API data (_t=" + _t + "):", JSON.stringify(rawData));
 
+        // Log every key in the response for debugging
+        console.log("API response keys:", Object.keys(rawData));
+        console.log("Full API response:", JSON.stringify(rawData, null, 2));
+
         resultsData = {
           original:
             rawData.original ||
             rawData.transcript ||
             rawData.transcription ||
             rawData.text ||
+            rawData.input ||
+            rawData.source ||
             undefined,
           professional:
             rawData.professional ||
             rawData.professional_rewrite ||
             rawData.formal ||
+            rawData.rewrite_professional ||
+            rawData.rewrites?.professional ||
+            rawData.versions?.professional ||
             undefined,
           casual:
             rawData.casual ||
             rawData.casual_rewrite ||
             rawData.informal ||
+            rawData.rewrite_casual ||
+            rawData.rewrites?.casual ||
+            rawData.versions?.casual ||
             undefined,
           concise:
             rawData.concise ||
             rawData.concise_rewrite ||
             rawData.summary ||
+            rawData.rewrite_concise ||
+            rawData.rewrites?.concise ||
+            rawData.versions?.concise ||
             undefined,
         };
       }
@@ -213,16 +228,14 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {cards.length === 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>DEBUG — RAW API RESPONSE</Text>
-            <Text style={styles.cardText}>
-              {dataParam
-                ? JSON.stringify(rawData, null, 2)
-                : "No data received from API"}
-            </Text>
-          </View>
-        )}
+        <View style={[styles.card, { borderWidth: 1, borderColor: "#FF3B30" }]}>
+          <Text style={styles.cardLabel}>DEBUG — RAW API RESPONSE</Text>
+          <Text style={[styles.cardText, { fontFamily: "monospace", fontSize: 11 }]}>
+            {dataParam
+              ? JSON.stringify(rawData, null, 2)
+              : "No data received from API"}
+          </Text>
+        </View>
         {cards.map((card) => (
           <ResultCard
             key={card.key}
