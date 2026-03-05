@@ -7,6 +7,7 @@ import {
   Animated,
   ActivityIndicator,
   Easing,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -15,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ToastProvider";
 import { useHistory } from "@/context/HistoryContext";
 import { useNotes } from "@/context/NotesContext";
+import { Audio } from "expo-av";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "";
 
@@ -23,7 +25,6 @@ type RecordingState = "idle" | "recording" | "processing";
 export default function HomeScreen() {
   const [state, setState] = useState<RecordingState>("idle");
   const [timer, setTimer] = useState(0);
-  const [audioUri, setAudioUri] = useState<string | null>(null);
   const { token } = useAuth();
   const { showToast } = useToast();
   const { historyCount } = useHistory();
@@ -33,11 +34,16 @@ export default function HomeScreen() {
   const pulseOpacity = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseRef = useRef<Animated.CompositeAnimation | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (pulseRef.current) pulseRef.current.stop();
+      // Clean up recording if component unmounts mid-recording
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      }
     };
   }, []);
 
@@ -106,29 +112,93 @@ export default function HomeScreen() {
 
   const handleRecordButton = async () => {
     if (state === "idle") {
-      setState("recording");
-      startPulse();
-      startTimer();
-      // In a real implementation, start actual recording here
-      // For now we simulate the recording state
+      await startRecording();
     } else if (state === "recording") {
-      stopTimer();
-      stopPulse();
-      setState("processing");
-      await processRecording();
+      await stopAndProcess();
     }
   };
 
-  const processRecording = async () => {
+  const startRecording = async () => {
     try {
-      // Simulate API call - in production this would send actual audio
+      // Request microphone permission
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        showToast("Microphone permission is required to record.");
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+
+      setState("recording");
+      startPulse();
+      startTimer();
+    } catch (e) {
+      showToast("Could not start recording. Please try again.");
+    }
+  };
+
+  const stopAndProcess = async () => {
+    stopTimer();
+    stopPulse();
+    setState("processing");
+
+    try {
+      if (!recordingRef.current) {
+        showToast("No recording found. Please try again.");
+        setState("idle");
+        setTimer(0);
+        return;
+      }
+
+      await recordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        showToast("Recording failed. Please try again.");
+        setState("idle");
+        setTimer(0);
+        return;
+      }
+
+      await processRecording(uri);
+    } catch (e) {
+      showToast("Failed to stop recording. Please try again.");
+      setState("idle");
+      setTimer(0);
+    }
+  };
+
+  const processRecording = async (audioUri: string) => {
+    try {
+      // Build multipart form data with the audio file
+      const formData = new FormData();
+      const filename = audioUri.split("/").pop() || "recording.m4a";
+      const fileType = Platform.OS === "ios" ? "audio/m4a" : "audio/mpeg";
+
+      formData.append("audio", {
+        uri: audioUri,
+        name: filename,
+        type: fileType,
+      } as any);
+
       const response = await fetch(`${API_BASE}/api/v1/transcribe`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          // Do NOT set Content-Type manually — fetch will set it with boundary for FormData
         },
-        body: JSON.stringify({ audio_uri: audioUri, duration: timer }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -141,10 +211,13 @@ export default function HomeScreen() {
       } else if (response.status === 502) {
         showToast("Server error. Please try again.");
       } else {
-        showToast("Something went wrong. Please try again.");
+        const errText = await response.text().catch(() => "");
+        showToast(`Error ${response.status}. Please try again.`);
+        console.error("Transcribe error:", response.status, errText);
       }
     } catch (e) {
       showToast("Network error. Check your connection.");
+      console.error("Transcribe fetch error:", e);
     } finally {
       setState("idle");
       setTimer(0);
