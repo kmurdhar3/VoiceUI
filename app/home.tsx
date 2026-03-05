@@ -25,7 +25,7 @@ type RecordingState = "idle" | "recording" | "processing";
 export default function HomeScreen() {
   const [state, setState] = useState<RecordingState>("idle");
   const [timer, setTimer] = useState(0);
-  const { token } = useAuth();
+  const { getValidToken } = useAuth();
   const { showToast } = useToast();
   const { historyCount } = useHistory();
   const { notesCount } = useNotes();
@@ -181,12 +181,21 @@ export default function HomeScreen() {
 
   const processRecording = async (audioUri: string) => {
     try {
+      // Get a valid (possibly refreshed) token
+      const validToken = await getValidToken();
+      if (!validToken) {
+        showToast("Session expired. Please login again.");
+        setState("idle");
+        setTimer(0);
+        return;
+      }
+
       // Build multipart form data with the audio file
       const formData = new FormData();
       const filename = audioUri.split("/").pop() || "recording.m4a";
       const fileType = Platform.OS === "ios" ? "audio/m4a" : "audio/mpeg";
 
-      formData.append("audio", {
+      formData.append("file", {
         uri: audioUri,
         name: filename,
         type: fileType,
@@ -195,7 +204,7 @@ export default function HomeScreen() {
       const response = await fetch(`${API_BASE}/api/v1/transcribe`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${validToken}`,
           // Do NOT set Content-Type manually — fetch will set it with boundary for FormData
         },
         body: formData,
