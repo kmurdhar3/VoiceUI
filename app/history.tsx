@@ -68,7 +68,10 @@ export default function HistoryScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        router.push({ pathname: "/results", params: { data: JSON.stringify(data) } });
+        router.push({
+          pathname: "/results",
+          params: { data: JSON.stringify(data), _t: Date.now().toString() },
+        });
       } else {
         showToast("Could not load recording.");
       }

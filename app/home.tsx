@@ -212,7 +212,10 @@ export default function HomeScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        router.push({ pathname: "/results", params: { data: JSON.stringify(data) } });
+        router.push({
+          pathname: "/results",
+          params: { data: JSON.stringify(data), _t: Date.now().toString() },
+        });
       } else if (response.status === 429) {
         showToast("Rate limit reached. Please wait a moment.");
       } else if (response.status === 413) {

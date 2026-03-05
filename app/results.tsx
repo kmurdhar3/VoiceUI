@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -93,7 +93,7 @@ function ResultCard({
 }
 
 export default function ResultsScreen() {
-  const { data: dataParam } = useLocalSearchParams<{ data: string }>();
+  const { data: dataParam, _t } = useLocalSearchParams<{ data: string; _t: string }>();
   const { token } = useAuth();
   const { showToast } = useToast();
   const { refreshNotes } = useNotes();
@@ -101,41 +101,50 @@ export default function ResultsScreen() {
   const [copyStates, setCopyStates] = useState<Record<string, boolean>>({});
   const [saveStates, setSaveStates] = useState<Record<string, boolean>>({});
 
-  let resultsData: ResultsData = {};
-  let rawData: any = {};
-  try {
-    if (dataParam) {
-      rawData = JSON.parse(dataParam);
-      console.log("Results raw API data:", JSON.stringify(rawData));
+  // Reset action states when navigating to a new recording
+  useEffect(() => {
+    setCopyStates({});
+    setSaveStates({});
+  }, [_t, dataParam]);
 
-      // Normalize common API field name variants
-      resultsData = {
-        original:
-          rawData.original ||
-          rawData.transcript ||
-          rawData.transcription ||
-          rawData.text ||
-          undefined,
-        professional:
-          rawData.professional ||
-          rawData.professional_rewrite ||
-          rawData.formal ||
-          undefined,
-        casual:
-          rawData.casual ||
-          rawData.casual_rewrite ||
-          rawData.informal ||
-          undefined,
-        concise:
-          rawData.concise ||
-          rawData.concise_rewrite ||
-          rawData.summary ||
-          undefined,
-      };
+  // Re-parse whenever dataParam or _t changes (handles navigating to results multiple times)
+  const { resultsData, rawData } = useMemo(() => {
+    let resultsData: ResultsData = {};
+    let rawData: any = {};
+    try {
+      if (dataParam) {
+        rawData = JSON.parse(dataParam);
+        console.log("Results raw API data (_t=" + _t + "):", JSON.stringify(rawData));
+
+        resultsData = {
+          original:
+            rawData.original ||
+            rawData.transcript ||
+            rawData.transcription ||
+            rawData.text ||
+            undefined,
+          professional:
+            rawData.professional ||
+            rawData.professional_rewrite ||
+            rawData.formal ||
+            undefined,
+          casual:
+            rawData.casual ||
+            rawData.casual_rewrite ||
+            rawData.informal ||
+            undefined,
+          concise:
+            rawData.concise ||
+            rawData.concise_rewrite ||
+            rawData.summary ||
+            undefined,
+        };
+      }
+    } catch (e) {
+      console.error("Failed to parse results data:", e);
     }
-  } catch (e) {
-    console.error("Failed to parse results data:", e);
-  }
+    return { resultsData, rawData };
+  }, [dataParam, _t]);
 
   const handleCopy = async (key: string, text: string) => {
     await Clipboard.setStringAsync(text);
