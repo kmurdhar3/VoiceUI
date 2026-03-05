@@ -1,50 +1,91 @@
-# Welcome to your Expo app 👋
+# SpeakIt Mobile — Local Development Guide
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Prerequisites
 
-## Get started
+- Node.js installed
+- Android phone with **Expo Go** app installed
+  → Download from Play Store: search **"Expo Go"**
+- Phone and laptop on the **same WiFi network**
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Step 1 — Checkout the Code
 
 ```bash
-npm run reset-project
+cd /home/kamlesh/StudioProjects/VoiceUI
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Or clone fresh:
+```bash
+git clone https://github.com/kmurdhar3/Voice.git /home/kamlesh/StudioProjects/VoiceUI
+cd /home/kamlesh/StudioProjects/VoiceUI
+npm install
+```
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Step 2 — Make Your Changes
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Edit any file inside `/home/kamlesh/StudioProjects/VoiceUI/` using your preferred editor.
 
-## Join the community
+Key files:
+| File | Purpose |
+|------|---------|
+| `app/home.tsx` | Main recording screen |
+| `app/results.tsx` | Results screen (3 polished versions) |
+| `app/history.tsx` | Recording history screen |
+| `app/settings.tsx` | Language + custom prompts |
+| `context/AuthContext.tsx` | Login / token management |
+| `context/HistoryContext.tsx` | History data fetching |
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Step 3 — Start the App
+
+```bash
+cd /home/kamlesh/StudioProjects/VoiceUI
+npx expo start
+```
+
+Wait for the QR code to appear in the terminal.
+
+---
+
+## Step 4 — Open on Phone
+
+1. Open **Expo Go** on your Android phone
+2. Tap **"Scan QR Code"**
+3. Point camera at the QR code in the terminal
+4. App loads automatically on your phone ✅
+
+---
+
+## Step 5 — Live Reload (No restart needed)
+
+Every time you **save a file** (`Ctrl+S`), the app reloads automatically on your phone.
+
+| Action | How |
+|--------|-----|
+| Force reload | Press `r` in terminal |
+| Open dev menu | Shake your phone |
+| Stop server | Press `Ctrl+C` in terminal |
+
+---
+
+## API
+
+The app connects to the live backend:
+```
+https://speakit-api-78524125987.asia-southeast1.run.app
+```
+
+No local backend setup needed — it's already deployed on Google Cloud Run.
+
+---
+
+## Test Credentials
+
+```
+Email:    test@speakit.io
+Password: Test1234!
+```
