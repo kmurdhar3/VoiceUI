@@ -25,7 +25,7 @@ type RecordingState = "idle" | "recording" | "processing";
 export default function HomeScreen() {
   const [state, setState] = useState<RecordingState>("idle");
   const [timer, setTimer] = useState(0);
-  const { getValidToken } = useAuth();
+  const { token } = useAuth();
   const { showToast } = useToast();
   const { historyCount } = useHistory();
   const { notesCount } = useNotes();
@@ -181,19 +181,10 @@ export default function HomeScreen() {
 
   const processRecording = async (audioUri: string) => {
     try {
-      // Get a valid (possibly refreshed) token
-      const validToken = await getValidToken();
-      if (!validToken) {
-        showToast("Session expired. Please login again.");
-        setState("idle");
-        setTimer(0);
-        return;
-      }
-
       // Build multipart form data with the audio file
       const formData = new FormData();
       const filename = audioUri.split("/").pop() || "recording.m4a";
-      const fileType = Platform.OS === "ios" ? "audio/m4a" : "audio/mpeg";
+      const fileType = Platform.OS === "ios" ? "audio/m4a" : "audio/mp4";
 
       formData.append("file", {
         uri: audioUri,
@@ -204,7 +195,7 @@ export default function HomeScreen() {
       const response = await fetch(`${API_BASE}/api/v1/transcribe`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${validToken}`,
+          Authorization: `Bearer ${token}`,
           // Do NOT set Content-Type manually — fetch will set it with boundary for FormData
         },
         body: formData,
@@ -212,10 +203,7 @@ export default function HomeScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        router.push({
-          pathname: "/results",
-          params: { data: JSON.stringify(data), _t: Date.now().toString() },
-        });
+        router.push({ pathname: "/results", params: { data: JSON.stringify(data) } });
       } else if (response.status === 429) {
         showToast("Rate limit reached. Please wait a moment.");
       } else if (response.status === 413) {

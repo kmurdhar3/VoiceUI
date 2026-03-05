@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import { useHistory } from "@/context/HistoryContext";
 import { useToast } from "@/components/ToastProvider";
@@ -24,6 +24,13 @@ function formatDuration(seconds: number): string {
 }
 
 function groupByDate(items: any[]) {
+  // Deduplicate by id first
+  const seen = new Set();
+  items = items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
@@ -57,12 +64,19 @@ function groupByDate(items: any[]) {
 
 export default function HistoryScreen() {
   const { items, isLoading, hasNext, loadMore, refresh } = useHistory();
+
+  // Refresh every time this screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
   const { showToast } = useToast();
   const { token } = useAuth();
 
   const handleItemPress = async (item: any) => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/history/${item.id}`, {
+      const response = await fetch(`${API_BASE}/api/v1/recordings/${item.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -102,14 +116,14 @@ export default function HistoryScreen() {
     >
       <View style={styles.listItemContent}>
         <Text style={styles.listItemText} numberOfLines={1}>
-          {item.transcript
-            ? item.transcript.length > 50
-              ? item.transcript.substring(0, 50) + "..."
-              : item.transcript
+          {item.raw_transcript
+            ? item.raw_transcript.length > 50
+              ? item.raw_transcript.substring(0, 50) + "..."
+              : item.raw_transcript
             : "Recording"}
         </Text>
         <Text style={styles.listItemSubtext}>
-          {formatDuration(item.duration || 0)}
+          {formatDuration(Math.round(item.duration_seconds || 0))}
         </Text>
       </View>
       <ChevronRight size={16} color="#888888" strokeWidth={1.5} />
@@ -122,7 +136,7 @@ export default function HistoryScreen() {
         {group.title}
       </Text>
       {group.data.map((item) => (
-        <View key={item.id}>{renderItem({ item })}</View>
+        <View key={`${group.title}-${item.id}`}>{renderItem({ item })}</View>
       ))}
     </View>
   );

@@ -120,39 +120,16 @@ export default function ResultsScreen() {
         console.log("API response keys:", Object.keys(rawData));
         console.log("Full API response:", JSON.stringify(rawData, null, 2));
 
+        // Map API response: raw_transcript + polished_versions[]
+        const versions = rawData.polished_versions || [];
+        const getVersion = (style: string) =>
+          versions.find((v: any) => v.style === style)?.text || undefined;
+
         resultsData = {
-          original:
-            rawData.original ||
-            rawData.transcript ||
-            rawData.transcription ||
-            rawData.text ||
-            rawData.input ||
-            rawData.source ||
-            undefined,
-          professional:
-            rawData.professional ||
-            rawData.professional_rewrite ||
-            rawData.formal ||
-            rawData.rewrite_professional ||
-            rawData.rewrites?.professional ||
-            rawData.versions?.professional ||
-            undefined,
-          casual:
-            rawData.casual ||
-            rawData.casual_rewrite ||
-            rawData.informal ||
-            rawData.rewrite_casual ||
-            rawData.rewrites?.casual ||
-            rawData.versions?.casual ||
-            undefined,
-          concise:
-            rawData.concise ||
-            rawData.concise_rewrite ||
-            rawData.summary ||
-            rawData.rewrite_concise ||
-            rawData.rewrites?.concise ||
-            rawData.versions?.concise ||
-            undefined,
+          original: rawData.raw_transcript || rawData.original || undefined,
+          professional: getVersion("professional") || rawData.professional || undefined,
+          casual: getVersion("casual") || rawData.casual || undefined,
+          concise: getVersion("concise") || rawData.concise || undefined,
         };
       }
     } catch (e) {
@@ -228,14 +205,7 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.card, { borderWidth: 1, borderColor: "#FF3B30" }]}>
-          <Text style={styles.cardLabel}>DEBUG — RAW API RESPONSE</Text>
-          <Text style={[styles.cardText, { fontFamily: "monospace", fontSize: 11 }]}>
-            {dataParam
-              ? JSON.stringify(rawData, null, 2)
-              : "No data received from API"}
-          </Text>
-        </View>
+
         {cards.map((card) => (
           <ResultCard
             key={card.key}

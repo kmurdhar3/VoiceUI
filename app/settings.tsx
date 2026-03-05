@@ -43,7 +43,7 @@ export default function SettingsScreen() {
   const [concisePrompt, setConcisePrompt] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { token } = useAuth();
+  const { getValidToken } = useAuth();
   const { showToast } = useToast();
 
   const originalValues = useRef({ professionalPrompt: "", casualPrompt: "", concisePrompt: "" });
@@ -54,15 +54,21 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     try {
+      const validToken = await getValidToken();
+      if (!validToken) return;
       const response = await fetch(`${API_BASE}/api/v1/settings`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${validToken}` },
       });
       if (response.ok) {
         const data = await response.json();
         const lang = data.language || "en";
-        const profPrompt = data.prompts?.professional || "";
-        const casPrompt = data.prompts?.casual || "";
-        const conPrompt = data.prompts?.concise || "";
+        // API returns prompts as array [{slot, label, prompt_text}]
+        const prompts = data.prompts || [];
+        const getPrompt = (slot: number) =>
+          prompts.find((p: any) => p.slot === slot)?.prompt_text || "";
+        const profPrompt = getPrompt(1);
+        const casPrompt  = getPrompt(2);
+        const conPrompt  = getPrompt(3);
         setLanguage(lang);
         setProfessionalPrompt(profPrompt);
         setCasualPrompt(casPrompt);
@@ -95,10 +101,12 @@ export default function SettingsScreen() {
     setLanguage(code);
     setShowLangModal(false);
     try {
+      const validToken = await getValidToken();
+      if (!validToken) return;
       await fetch(`${API_BASE}/api/v1/settings/language`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${validToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ language: code }),
@@ -111,16 +119,24 @@ export default function SettingsScreen() {
   const handleSavePrompts = async () => {
     setIsSaving(true);
     try {
+      const validToken = await getValidToken();
+      if (!validToken) {
+        showToast("Session expired. Please login again.");
+        return;
+      }
+      // API expects: { prompts: [{slot, label, prompt_text}] }
       const response = await fetch(`${API_BASE}/api/v1/settings/prompts`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${validToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          professional: professionalPrompt,
-          casual: casualPrompt,
-          concise: concisePrompt,
+          prompts: [
+            { slot: 1, label: "Professional", prompt_text: professionalPrompt || "Rewrite in a formal, professional tone suitable for business communication" },
+            { slot: 2, label: "Casual",        prompt_text: casualPrompt || "Rewrite in a friendly, conversational tone while keeping the meaning" },
+            { slot: 3, label: "Concise",       prompt_text: concisePrompt || "Make this shorter and more direct while preserving the key message" },
+          ],
         }),
       });
 
@@ -129,6 +145,8 @@ export default function SettingsScreen() {
         setIsDirty(false);
         showToast("Prompts saved successfully.");
       } else {
+        const err = await response.text();
+        console.error("Save prompts error:", err);
         showToast("Failed to save prompts.");
       }
     } catch (e) {

@@ -12,15 +12,11 @@ const API_BASE = "https://speakit-api-78524125987.asia-southeast1.run.app";
 
 interface HistoryItem {
   id: string;
-  transcript: string;
-  duration: number;
+  raw_transcript: string;
+  duration_seconds: number;
+  language_detected: string;
   created_at: string;
-  results?: {
-    original?: string;
-    professional?: string;
-    casual?: string;
-    concise?: string;
-  };
+  polished_count?: number;
 }
 
 interface HistoryContextType {
@@ -50,36 +46,39 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [page, setPage] = useState(1);
-  const { token } = useAuth();
+  const { getValidToken } = useAuth();
 
   const refresh = useCallback(async () => {
-    if (!token) return;
+    const validToken = await getValidToken();
+    if (!validToken) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/history?page=1&limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch(`${API_BASE}/api/v1/recordings?page=1&page_size=20`, {
+        headers: { Authorization: `Bearer ${validToken}` },
       });
       if (response.ok) {
         const data = await response.json();
+        setPage(1);
         setItems(data.items || []);
         setHasNext(data.has_next || false);
-        setPage(1);
       }
     } catch (e) {
       // Handle gracefully
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [getValidToken]);
 
   const loadMore = useCallback(async () => {
-    if (!token || isLoading || !hasNext) return;
+    if (isLoading || !hasNext) return;
+    const validToken = await getValidToken();
+    if (!validToken) return;
     setIsLoading(true);
     try {
       const nextPage = page + 1;
       const response = await fetch(
-        `${API_BASE}/api/v1/history?page=${nextPage}&limit=20`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE}/api/v1/recordings?page=${nextPage}&page_size=20`,
+        { headers: { Authorization: `Bearer ${validToken}` } }
       );
       if (response.ok) {
         const data = await response.json();
@@ -92,11 +91,11 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [token, isLoading, hasNext, page]);
+  }, [getValidToken, isLoading, hasNext, page]);
 
   useEffect(() => {
-    if (token) refresh();
-  }, [token]);
+    refresh();
+  }, []);
 
   return (
     <HistoryContext.Provider
