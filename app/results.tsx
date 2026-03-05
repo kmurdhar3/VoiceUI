@@ -102,31 +102,39 @@ export default function ResultsScreen() {
   const [saveStates, setSaveStates] = useState<Record<string, boolean>>({});
 
   let resultsData: ResultsData = {};
+  let rawData: any = {};
   try {
     if (dataParam) {
-      resultsData = JSON.parse(dataParam);
+      rawData = JSON.parse(dataParam);
+      console.log("Results raw API data:", JSON.stringify(rawData));
+
+      // Normalize common API field name variants
+      resultsData = {
+        original:
+          rawData.original ||
+          rawData.transcript ||
+          rawData.transcription ||
+          rawData.text ||
+          undefined,
+        professional:
+          rawData.professional ||
+          rawData.professional_rewrite ||
+          rawData.formal ||
+          undefined,
+        casual:
+          rawData.casual ||
+          rawData.casual_rewrite ||
+          rawData.informal ||
+          undefined,
+        concise:
+          rawData.concise ||
+          rawData.concise_rewrite ||
+          rawData.summary ||
+          undefined,
+      };
     }
   } catch (e) {
-    resultsData = {
-      original: "Sample original transcription text.",
-      professional:
-        "This is a professionally rewritten version of the transcription.",
-      casual: "Here's a casual take on what you said.",
-      concise: "Brief summary of the transcription.",
-    };
-  }
-
-  // Demo fallback data for when no real data is available
-  if (!resultsData.original && !resultsData.professional) {
-    resultsData = {
-      original:
-        "Hey so I was thinking about the project deadline and like we probably need to move it because nobody's finished their parts yet and I think we should talk about it in the next meeting",
-      professional:
-        "I wanted to address the upcoming project deadline. Given that team members have not yet completed their respective deliverables, I recommend we discuss a timeline adjustment in our next meeting.",
-      casual:
-        "Hey, so the project deadline might need to move since no one's done yet. Let's chat about it next meeting.",
-      concise: "Project deadline needs adjustment. Discuss in next meeting.",
-    };
+    console.error("Failed to parse results data:", e);
   }
 
   const handleCopy = async (key: string, text: string) => {
@@ -196,6 +204,16 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {cards.length === 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>DEBUG — RAW API RESPONSE</Text>
+            <Text style={styles.cardText}>
+              {dataParam
+                ? JSON.stringify(rawData, null, 2)
+                : "No data received from API"}
+            </Text>
+          </View>
+        )}
         {cards.map((card) => (
           <ResultCard
             key={card.key}
